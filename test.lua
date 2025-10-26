@@ -435,165 +435,58 @@ local function createLoadingScreen(message)
     return ScreenGui, LoadingText
 end
 local function scanPlots()
-    local plotsFolder = workspace:FindFirstChild("Plots")
-    if not plotsFolder then
-        return {}
-    end
     local animalData = {}
     local validRarities = {"og", "secret", "brainrot god"}
     
-    -- Function to check if AnimalOverhead follows the specific path structure
-    local function isValidOverheadPath(animalOverhead)
-        if not animalOverhead:IsA("BillboardGui") then
-            return false
+    print("TÜM WORKSPACE TARANIYORRR...")
+    
+    -- TÜM WORKSPACE'DEKİ HER ŞEYİ TARA
+    for _, descendant in pairs(workspace:GetDescendants()) do
+        if descendant.Name == "AnimalOverhead" and descendant:IsA("BillboardGui") then
+            local generation = descendant:FindFirstChild("Generation")
+            local displayName = descendant:FindFirstChild("DisplayName")
+            local mutation = descendant:FindFirstChild("Mutation")
+            local rarity = descendant:FindFirstChild("Rarity")
+            
+            if generation and displayName and rarity and rarity.Visible then
+                local genValue = parseGeneration(generation.Text)
+                local animalName = displayName.Text or "Unknown"
+                local rarityText = rarity.Text
+                local rarityLower = string.lower(rarityText)
+                
+                -- Rarity kontrolü
+                local isValidRarity = false
+                for _, validRarity in pairs(validRarities) do
+                    if rarityLower == validRarity then
+                        isValidRarity = true
+                        break
+                    end
+                end
+                
+                if isValidRarity and genValue > 0 then
+                    local mutationText = nil
+                    if mutation and mutation.Visible then
+                        mutationText = cleanMutationText(mutation.Text)
+                    end
+                    
+                    -- Lokasyon bilgisi al
+                    local locationPath = descendant:GetFullName()
+                    
+                    table.insert(animalData, {
+                        plotName = "Workspace",
+                        podiumNumber = locationPath,
+                        animalName = animalName,
+                        generation = genValue,
+                        generationText = generation.Text,
+                        mutation = mutationText,
+                        rarity = rarityText
+                    })
+                end
+            end
         end
-        
-        -- Path should be: Model/.../FakeRootPart/Bone/HatAttachment/OVERHEAD_ATTACHMENT/AnimalOverhead
-        local overheadAttachment = animalOverhead.Parent
-        if not overheadAttachment or overheadAttachment.Name ~= "OVERHEAD_ATTACHMENT" then
-            return false
-        end
-        
-        local hatAttachment = overheadAttachment.Parent
-        if not hatAttachment or hatAttachment.Name ~= "HatAttachment" then
-            return false
-        end
-        
-        local bone = hatAttachment.Parent
-        if not bone or bone.Name ~= "Bone" then
-            return false
-        end
-        
-        local fakeRootPart = bone.Parent
-        if not fakeRootPart or fakeRootPart.Name ~= "FakeRootPart" then
-            return false
-        end
-        
-        -- FakeRootPart's parent should be a Model
-        local model = fakeRootPart.Parent
-        if not model or not model:IsA("Model") then
-            return false
-        end
-        
-        return true
     end
     
-    for _, plot in pairs(plotsFolder:GetChildren()) do
-        if plot:IsA("Model") or plot:IsA("Folder") then
-            -- First check the standard location (AnimalPodiums)
-            local animalPodiums = plot:FindFirstChild("AnimalPodiums")
-            if animalPodiums then
-                for i = 1, 24 do
-                    local podium = animalPodiums:FindFirstChild(tostring(i))
-                    if podium then
-                        local base = podium:FindFirstChild("Base")
-                        if base then
-                            local spawn = base:FindFirstChild("Spawn")
-                            if spawn then
-                                local attachment = spawn:FindFirstChild("Attachment")
-                                if attachment then
-                                    local animalOverhead = attachment:FindFirstChild("AnimalOverhead")
-                                    if animalOverhead then
-                                        local generation = animalOverhead:FindFirstChild("Generation")
-                                        local displayName = animalOverhead:FindFirstChild("DisplayName")
-                                        local mutation = animalOverhead:FindFirstChild("Mutation")
-                                        local rarity = animalOverhead:FindFirstChild("Rarity")
-                                        if generation and displayName and rarity and rarity.Visible then
-                                            local genValue = parseGeneration(generation.Text)
-                                            local animalName = displayName.Text or "Unknown"
-                                            local rarityText = rarity.Text
-                                            local isValidRarity = false
-                                            local rarityLower = string.lower(rarityText)
-                                            for _, validRarity in pairs(validRarities) do
-                                                if rarityLower == validRarity then
-                                                    isValidRarity = true
-                                                    break
-                                                end
-                                            end
-                                            if isValidRarity and genValue > 0 then
-                                                local mutationText = nil
-                                                if mutation and mutation.Visible then
-                                                    mutationText = cleanMutationText(mutation.Text)
-                                                end
-                                                table.insert(animalData, {
-                                                    plotName = plot.Name,
-                                                    podiumNumber = i,
-                                                    animalName = animalName,
-                                                    generation = genValue,
-                                                    generationText = generation.Text,
-                                                    mutation = mutationText,
-                                                    rarity = rarityText
-                                                })
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-            
-            -- Second scan: Check ALL models in the plot for the specific path structure
-            for _, child in pairs(plot:GetDescendants()) do
-                if child.Name == "AnimalOverhead" and isValidOverheadPath(child) then
-                    local generation = child:FindFirstChild("Generation")
-                    local displayName = child:FindFirstChild("DisplayName")
-                    local mutation = child:FindFirstChild("Mutation")
-                    local rarity = child:FindFirstChild("Rarity")
-                    
-                    if generation and displayName and rarity and rarity.Visible then
-                        local genValue = parseGeneration(generation.Text)
-                        local animalName = displayName.Text or "Unknown"
-                        local rarityText = rarity.Text
-                        local isValidRarity = false
-                        local rarityLower = string.lower(rarityText)
-                        
-                        for _, validRarity in pairs(validRarities) do
-                            if rarityLower == validRarity then
-                                isValidRarity = true
-                                break
-                            end
-                        end
-                        
-                        if isValidRarity and genValue > 0 then
-                            -- Check if this animal is not already added
-                            local alreadyAdded = false
-                            for _, existing in pairs(animalData) do
-                                if existing.plotName == plot.Name and 
-                                   existing.animalName == animalName and 
-                                   existing.generation == genValue and
-                                   existing.rarity == rarityText then
-                                    alreadyAdded = true
-                                    break
-                                end
-                            end
-                            
-                            if not alreadyAdded then
-                                local mutationText = nil
-                                if mutation and mutation.Visible then
-                                    mutationText = cleanMutationText(mutation.Text)
-                                end
-                                
-                                -- Get the model name (5 parents up from AnimalOverhead)
-                                local modelName = child.Parent.Parent.Parent.Parent.Parent.Name
-                                
-                                table.insert(animalData, {
-                                    plotName = plot.Name,
-                                    podiumNumber = "Model: " .. modelName,
-                                    animalName = animalName,
-                                    generation = genValue,
-                                    generationText = generation.Text,
-                                    mutation = mutationText,
-                                    rarity = rarityText
-                                })
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
+    print("TOPLAM BULUNAN: " .. #animalData)
     return animalData
 end
 local function groupAnimals(animalData)
